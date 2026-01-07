@@ -11,16 +11,63 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      force_build:
+        description: 'Force build even if version exists'
+        required: false
+        default: 'false'
+        type: boolean
   schedule:
-    # Build weekly to get latest Antigravity release
-    - cron: '0 0 * * 0'
+    # Check for new releases every day at 8:00 UTC (16:00 Beijing time)
+    - cron: '0 8 * * *'
 
 env:
   REGISTRY: docker.io
   IMAGE_NAME: guguchen/antigravity-tools
 
 jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      should_build: ${{ steps.check.outputs.should_build }}
+    steps:
+      - name: Get latest Antigravity version
+        id: version
+        run: |
+          VERSION=$(curl -s "https://api.github.com/repos/lbjlaq/Antigravity-Manager/releases/latest" | jq -r '.tag_name' | sed 's/^v//')
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Latest Antigravity version: ${VERSION}"
+
+      - name: Check if version already exists on Docker Hub
+        id: check
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          FORCE="${{ github.event.inputs.force_build }}"
+          
+          # For push events or force build, always build
+          if [ "${{ github.event_name }}" == "push" ] || [ "$FORCE" == "true" ]; then
+            echo "should_build=true" >> $GITHUB_OUTPUT
+            echo "Build triggered by push or force flag"
+            exit 0
+          fi
+          
+          # Check if tag exists on Docker Hub
+          TOKEN=$(curl -s "https://auth.docker.io/token?service=registry.docker.io&scope=repository:${{ env.IMAGE_NAME }}:pull" | jq -r '.token')
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $TOKEN" \
+            "https://registry-1.docker.io/v2/${{ env.IMAGE_NAME }}/manifests/${VERSION}")
+          
+          if [ "$RESPONSE" == "200" ]; then
+            echo "Version ${VERSION} already exists on Docker Hub, skipping build"
+            echo "should_build=false" >> $GITHUB_OUTPUT
+          else
+            echo "Version ${VERSION} not found on Docker Hub, will build"
+            echo "should_build=true" >> $GITHUB_OUTPUT
+          fi
+
   build:
+    needs: check-version
+    if: needs.check-version.outputs.should_build == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -44,22 +91,6 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Get Antigravity version
-        id: version
-        run: |
-          VERSION=$(curl -s "https://api.github.com/repos/lbjlaq/Antigravity-Manager/releases/latest" | jq -r '.tag_name' | sed 's/^v//')
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
-          echo "Latest Antigravity version: ${VERSION}"
-
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=raw,value=latest
-            type=raw,value=${{ steps.version.outputs.version }}
-
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
@@ -67,11 +98,13 @@ jobs:
           file: ./Dockerfile
           platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.check-version.outputs.version }}
           labels: |
             org.opencontainers.image.title=Antigravity Tools
             org.opencontainers.image.description=Docker container for Antigravity Tools with Web VNC
-            org.opencontainers.image.version=${{ steps.version.outputs.version }}
+            org.opencontainers.image.version=${{ needs.check-version.outputs.version }}
             org.opencontainers.image.source=https://github.com/lbjlaq/Antigravity-Manager
           cache-from: type=gha
           cache-to: type=gha,mode=max
