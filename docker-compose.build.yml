@@ -1,7 +1,7 @@
 # =============================================================================
-# Docker Compose for Antigravity Tools (Local Build)
+# Antigravity Tools Docker Compose（本地构建版本）
 # =============================================================================
-# Usage: docker compose -f docker-compose.build.yml up -d --build
+# 使用方法: docker compose -f docker-compose.build.yml up -d --build
 # =============================================================================
 
 services:
@@ -10,30 +10,30 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        # Change to amd64 for Intel/AMD systems
+        # Intel/AMD 系统改为 amd64
         TARGETARCH: arm64
     image: antigravity-tools:local
     container_name: antigravity-tools
     ports:
-      # noVNC - bind to localhost only for security
+      # noVNC - 仅绑定本地，安全起见
       - "127.0.0.1:6080:6080"
-      # API proxy - can be exposed to other services
+      # API 反代 - 可暴露给其他服务
       - "8045:8045"
     volumes:
-      # Persist configuration and account data
+      # 持久化配置和账号数据
       - antigravity-data:/root/.antigravity_tools
     environment:
-      # Display resolution (width x height x depth)
+      # 显示分辨率（宽 x 高 x 色深）
       - RESOLUTION=1280x720x24
-      # Timezone
+      # 时区
       - TZ=Asia/Shanghai
     restart: unless-stopped
-    # Memory limit
+    # 内存限制
     mem_limit: 1g
-    # Security options for running GUI applications
+    # GUI 应用所需的安全选项
     security_opt:
       - seccomp:unconfined
-    # Required for some GUI operations
+    # WebKit 渲染所需的共享内存
     shm_size: '256m'
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:6080/"]
