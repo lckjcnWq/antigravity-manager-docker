@@ -1,0 +1,16 @@
+# Ignore original project source files for docker build context
+src/
+src-tauri/
+public/
+docs/
+scripts/
+Casks/
+.git/
+.github/
+.vscode/
+node_modules/
+dist/
+target/
+
+# Only include docker folder contents
+!docker/

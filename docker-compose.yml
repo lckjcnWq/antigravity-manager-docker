@@ -1,0 +1,39 @@
+services:
+  antigravity:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # For ARM64 (M1/M2 Mac, AWS Graviton)
+      args:
+        TARGETARCH: arm64
+    image: antigravity-tools:latest
+    container_name: antigravity-tools
+    ports:
+      # noVNC web interface - access via browser
+      - "60800:6080"
+      # API proxy - for external applications
+      - "60810:8045"
+    volumes:
+      # Persist configuration and account data
+      - antigravity-data:/root/.antigravity_tools
+    environment:
+      # Display resolution (width x height x depth)
+      - RESOLUTION=1280x720x24
+      # Timezone
+      - TZ=Asia/Shanghai
+    restart: unless-stopped
+    # Security options for running GUI applications
+    security_opt:
+      - seccomp:unconfined
+    # Required for some GUI operations
+    shm_size: '256m'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  antigravity-data:
+    driver: local
