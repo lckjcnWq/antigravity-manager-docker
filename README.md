@@ -20,7 +20,7 @@
 
 ```bash
 # 拉取镜像（自动选择架构）
-docker pull guguchen/antigravity-tools:latest
+docker pull pigeonmuyz/antigravity-tools:latest
 
 # 运行
 docker run -d \
@@ -29,14 +29,14 @@ docker run -d \
   -p 8045:8045 \
   -v antigravity-data:/root/.antigravity_tools \
   --restart unless-stopped \
-  guguchen/antigravity-tools:latest
+  pigeonmuyz/antigravity-tools:latest
 ```
 
 ### 方式二：Docker Compose 部署
 
 ```bash
 # 下载 docker-compose.yml
-curl -O https://raw.githubusercontent.com/guguchen/antigravity-manager-docker/main/docker-compose.yml
+curl -O https://raw.githubusercontent.com/pigeonmuyz/antigravity-manager-docker/main/docker-compose.yml
 
 # 启动
 docker compose up -d
@@ -46,7 +46,7 @@ docker compose up -d
 
 ```bash
 # 克隆仓库
-git clone https://github.com/guguchen/antigravity-manager-docker.git
+git clone https://github.com/pigeonmuyz/antigravity-manager-docker.git
 cd antigravity-manager-docker
 
 # ARM64 (M1/M2 Mac, AWS Graviton)
@@ -105,7 +105,7 @@ client = openai.OpenAI(
 
 ```bash
 # 使用指定版本
-docker pull guguchen/antigravity-tools:3.3.15
+docker pull pigeonmuyz/antigravity-tools:3.3.15
 ```
 
 ---
