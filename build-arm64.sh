@@ -9,7 +9,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 echo "Building Antigravity Tools Docker Image (arm64)..."
+echo "Using --no-cache to ensure latest version is fetched..."
 docker build \
+    --no-cache \
     --build-arg TARGETARCH=arm64 \
     -t antigravity-tools:arm64 \
     -t antigravity-tools:latest \

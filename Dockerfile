@@ -35,6 +35,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     # Additional Tauri dependencies
     libayatana-appindicator3-1 \
     librsvg2-common \
+    # Graphics dependencies for ARM64/headless rendering
+    libgbm1 \
+    libegl1 \
+    libgl1-mesa-dri \
     # Utilities (minimal)
     wget \
     curl \

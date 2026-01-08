@@ -27,40 +27,12 @@
 
 ## 部署方式
 
-### 方式一：使用 Docker Hub 镜像（推荐）
-
-```bash
-# 拉取镜像（自动选择架构）
-docker pull guguchen/antigravity-tools:latest
-
-# 运行（仅暴露 API 端口，VNC 端口通过 SSH 隧道访问）
-docker run -d \
-  --name antigravity-tools \
-  -p 127.0.0.1:6080:6080 \
-  -p 8045:8045 \
-  -v antigravity-data:/root/.antigravity_tools \
-  --restart unless-stopped \
-  guguchen/antigravity-tools:latest
-```
-
-### 方式二：Docker Compose 部署（推荐）
-
-```bash
-# 下载 docker-compose.yml
-curl -O https://raw.githubusercontent.com/PigeonMuyz/antigravity-manager-docker/main/docker-compose.yml
-
-# 启动（使用 Docker Hub 镜像）
-docker compose up -d
-```
-
-### 方式三：自行构建
-
 ```bash
 # 克隆仓库
-git clone https://github.com/PigeonMuyz/antigravity-manager-docker.git
+git clone https://github.com/lckjcnWq/antigravity-manager-docker.git
 cd antigravity-manager-docker
 
-# ARM64 (M1/M2 Mac, AWS Graviton)
+# ARM64 (M1/M2 Mac, AWS Graviton, Oracle ARM)
 ./build-arm64.sh
 
 # 或 AMD64 (Intel/AMD)
@@ -69,6 +41,8 @@ cd antigravity-manager-docker
 # 使用本地构建的镜像启动
 docker compose -f docker-compose.build.yml up -d
 ```
+
+> **注意**: 构建脚本使用 `--no-cache` 参数，确保每次构建都会获取最新版本的 Antigravity Tools。
 
 ---
 
@@ -112,16 +86,28 @@ client = openai.OpenAI(
 | 6080 | noVNC Web 界面 | ⚠️ 仅绑定本地，通过 SSH 隧道访问 |
 | 8045 | API 反代服务 | 可暴露给需要的服务 |
 
-## 可用镜像标签
+---
 
-| 标签 | 说明 |
-|------|------|
-| `latest` | 最新版本 |
-| `3.3.15` | 指定版本（示例） |
+## 常见问题
+
+### VNC 黑屏怎么办？
+
+1. 等待 30 秒让所有服务启动完成
+2. 查看日志：`docker logs antigravity-tools`
+3. 检查进程状态：`docker exec -it antigravity-tools supervisorctl status`
+
+### 如何查看当前版本？
 
 ```bash
-# 使用指定版本
-docker pull guguchen/antigravity-tools:3.3.15
+docker exec -it antigravity-tools cat /opt/antigravity/VERSION
+```
+
+### 如何更新到最新版本？
+
+```bash
+git pull
+./build-arm64.sh  # 或 ./build-amd64.sh
+docker compose -f docker-compose.build.yml up -d
 ```
 
 ---
