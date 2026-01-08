@@ -64,46 +64,36 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN set -ex && \
     mkdir -p /opt/antigravity && \
     # Map Docker TARGETARCH to AppImage arch naming
-    APPIMAGE_ARCH=$(case "${TARGETARCH}" in \
-    "arm64") echo "aarch64" ;; \
-    "amd64"|*) echo "amd64" ;; \
-    esac) && \
+    case "${TARGETARCH}" in \
+    "arm64") APPIMAGE_ARCH="aarch64" ;; \
+    "amd64"|*) APPIMAGE_ARCH="amd64" ;; \
+    esac && \
     echo "=== Target architecture: ${TARGETARCH} -> ${APPIMAGE_ARCH} ===" && \
     # Fetch latest release info from GitHub API
     echo "=== Fetching latest release from GitHub... ===" && \
     RELEASE_INFO=$(curl -sS "https://api.github.com/repos/lbjlaq/Antigravity-Manager/releases/latest") && \
     VERSION=$(echo "$RELEASE_INFO" | jq -r '.tag_name' | sed 's/^v//') && \
-    if [ -z "$VERSION" ] || [ "$VERSION" = "null" ]; then \
-    echo "ERROR: Failed to get version from GitHub API" && \
-    echo "API Response: $RELEASE_INFO" && \
-    exit 1; \
-    fi && \
     echo "=== Latest version tag: ${VERSION} ===" && \
     # Save version for labels
     echo "${VERSION}" > /opt/antigravity/VERSION && \
-    # Find the correct AppImage download URL from assets (handles version mismatch in filenames)
-    DOWNLOAD_URL=$(echo "$RELEASE_INFO" | jq -r --arg arch "${APPIMAGE_ARCH}" \
-    '.assets[] | select(.name | endswith("AppImage")) | select(.name | contains($arch)) | .browser_download_url' | head -1) && \
-    if [ -z "$DOWNLOAD_URL" ] || [ "$DOWNLOAD_URL" = "null" ]; then \
-    echo "ERROR: Could not find AppImage for ${APPIMAGE_ARCH} in release assets" && \
+    # Extract AppImage URL directly using grep (more reliable than complex jq)
+    echo "=== Searching for ${APPIMAGE_ARCH} AppImage... ===" && \
+    DOWNLOAD_URL=$(echo "$RELEASE_INFO" | grep -o "https://[^\"]*${APPIMAGE_ARCH}\.AppImage" | head -1) && \
+    echo "=== Found URL: ${DOWNLOAD_URL} ===" && \
+    if [ -z "$DOWNLOAD_URL" ]; then \
+    echo "ERROR: Could not find AppImage for ${APPIMAGE_ARCH}" && \
     echo "Available assets:" && \
     echo "$RELEASE_INFO" | jq -r '.assets[].name' && \
     exit 1; \
     fi && \
-    echo "=== Download URL: ${DOWNLOAD_URL} ===" && \
-    # Download AppImage with progress and error checking
+    # Download AppImage with progress
     echo "=== Downloading AppImage... ===" && \
     wget --progress=dot:giga "${DOWNLOAD_URL}" -O /opt/antigravity/antigravity.AppImage && \
     # Verify download
-    if [ ! -f /opt/antigravity/antigravity.AppImage ]; then \
-    echo "ERROR: Download failed - file does not exist" && \
-    exit 1; \
-    fi && \
     FILESIZE=$(stat -c%s /opt/antigravity/antigravity.AppImage) && \
     echo "=== Downloaded file size: ${FILESIZE} bytes ===" && \
     if [ "$FILESIZE" -lt 1000000 ]; then \
-    echo "ERROR: Downloaded file is too small, likely failed" && \
-    cat /opt/antigravity/antigravity.AppImage && \
+    echo "ERROR: Downloaded file is too small" && \
     exit 1; \
     fi && \
     chmod +x /opt/antigravity/antigravity.AppImage && \
@@ -111,22 +101,16 @@ RUN set -ex && \
     echo "=== Extracting AppImage... ===" && \
     cd /opt/antigravity && \
     ./antigravity.AppImage --appimage-extract && \
-    # Verify extraction
-    if [ ! -d squashfs-root ]; then \
-    echo "ERROR: AppImage extraction failed" && \
-    exit 1; \
-    fi && \
     rm antigravity.AppImage && \
     mv squashfs-root app && \
-    # Verify app directory
+    # Verify
     if [ ! -f /opt/antigravity/app/AppRun ]; then \
-    echo "ERROR: AppRun not found after extraction" && \
+    echo "ERROR: AppRun not found" && \
     ls -la /opt/antigravity/ && \
     exit 1; \
     fi && \
-    echo "=== AppImage extracted successfully ===" && \
-    ls -la /opt/antigravity/app/ && \
-    # Remove unnecessary files from extracted app
+    echo "=== Success! ===" && \
+    ls -la /opt/antigravity/app/AppRun && \
     rm -rf app/usr/share/doc app/usr/share/man 2>/dev/null || true
 
 WORKDIR /opt/antigravity
