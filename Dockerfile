@@ -78,11 +78,18 @@ RUN set -ex && \
     echo "API Response: $RELEASE_INFO" && \
     exit 1; \
     fi && \
-    echo "=== Latest version: ${VERSION} ===" && \
+    echo "=== Latest version tag: ${VERSION} ===" && \
     # Save version for labels
     echo "${VERSION}" > /opt/antigravity/VERSION && \
-    # Construct download URL
-    DOWNLOAD_URL="https://github.com/lbjlaq/Antigravity-Manager/releases/download/v${VERSION}/Antigravity.Tools_${VERSION}_${APPIMAGE_ARCH}.AppImage" && \
+    # Find the correct AppImage download URL from assets (handles version mismatch in filenames)
+    DOWNLOAD_URL=$(echo "$RELEASE_INFO" | jq -r --arg arch "${APPIMAGE_ARCH}" \
+    '.assets[] | select(.name | endswith("AppImage")) | select(.name | contains($arch)) | .browser_download_url' | head -1) && \
+    if [ -z "$DOWNLOAD_URL" ] || [ "$DOWNLOAD_URL" = "null" ]; then \
+    echo "ERROR: Could not find AppImage for ${APPIMAGE_ARCH} in release assets" && \
+    echo "Available assets:" && \
+    echo "$RELEASE_INFO" | jq -r '.assets[].name' && \
+    exit 1; \
+    fi && \
     echo "=== Download URL: ${DOWNLOAD_URL} ===" && \
     # Download AppImage with progress and error checking
     echo "=== Downloading AppImage... ===" && \
