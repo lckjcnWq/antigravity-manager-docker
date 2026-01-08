@@ -10,9 +10,9 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        # Intel/AMD 系统改为 amd64
+        # Intel/AMD 系统使用 amd64，ARM 系统使用 arm64
         TARGETARCH: arm64
-    image: antigravity-tools:local
+    image: antigravity-tools:latest
     container_name: antigravity-tools
     ports:
       # noVNC - 仅绑定本地，安全起见
@@ -36,7 +36,7 @@ services:
     # WebKit 渲染所需的共享内存
     shm_size: '256m'
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:6080/"]
+      test: [ "CMD", "curl", "-f", "http://localhost:6080/" ]
       interval: 30s
       timeout: 10s
       retries: 3
