@@ -59,8 +59,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/cache/apt/*
 
 # =============================================================================
-# Download latest Antigravity Tools AppImage from GitHub
+# Download Antigravity Tools AppImage from GitHub
+# Supports: latest version (default) or specific version via VERSION arg
 # =============================================================================
+
+# Optional: specify version to build (e.g., "1.2.3"), empty = latest
+ARG VERSION=""
+
 RUN set -ex && \
     mkdir -p /opt/antigravity && \
     # Map Docker TARGETARCH to AppImage arch naming
@@ -69,13 +74,19 @@ RUN set -ex && \
     "amd64"|*) APPIMAGE_ARCH="amd64" ;; \
     esac && \
     echo "=== Target architecture: ${TARGETARCH} -> ${APPIMAGE_ARCH} ===" && \
-    # Fetch latest release info from GitHub API
-    echo "=== Fetching latest release from GitHub... ===" && \
-    RELEASE_INFO=$(curl -sS "https://api.github.com/repos/lbjlaq/Antigravity-Manager/releases/latest") && \
-    VERSION=$(echo "$RELEASE_INFO" | jq -r '.tag_name' | sed 's/^v//') && \
-    echo "=== Latest version tag: ${VERSION} ===" && \
+    # Fetch release info from GitHub API (specific version or latest)
+    if [ -n "${VERSION}" ]; then \
+        echo "=== Fetching specific version: v${VERSION} ===" && \
+        RELEASE_INFO=$(curl -sS "https://api.github.com/repos/lbjlaq/Antigravity-Manager/releases/tags/v${VERSION}"); \
+        ACTUAL_VERSION="${VERSION}"; \
+    else \
+        echo "=== Fetching latest release from GitHub... ===" && \
+        RELEASE_INFO=$(curl -sS "https://api.github.com/repos/lbjlaq/Antigravity-Manager/releases/latest"); \
+        ACTUAL_VERSION=$(echo "$RELEASE_INFO" | jq -r '.tag_name' | sed 's/^v//'); \
+    fi && \
+    echo "=== Version: ${ACTUAL_VERSION} ===" && \
     # Save version for labels
-    echo "${VERSION}" > /opt/antigravity/VERSION && \
+    echo "${ACTUAL_VERSION}" > /opt/antigravity/VERSION && \
     # Extract AppImage URL directly using grep (more reliable than complex jq)
     echo "=== Searching for ${APPIMAGE_ARCH} AppImage... ===" && \
     DOWNLOAD_URL=$(echo "$RELEASE_INFO" | grep -o "https://[^\"]*${APPIMAGE_ARCH}\.AppImage" | head -1) && \

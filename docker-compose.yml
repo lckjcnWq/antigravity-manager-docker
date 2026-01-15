@@ -12,7 +12,7 @@ services:
     container_name: antigravity-tools
     ports:
       # noVNC - 仅绑定本地，安全起见
-      - "127.0.0.1:6080:6080"
+      - "6080:6080"
       # API 反代 - 可暴露给其他服务
       - "8045:8045"
     volumes:

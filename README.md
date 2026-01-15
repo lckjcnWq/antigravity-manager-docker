@@ -110,6 +110,22 @@ git pull
 docker compose -f docker-compose.build.yml up -d
 ```
 
+### 如何更新到特定版本？
+
+```bash
+# 查看可用版本
+curl -s https://api.github.com/repos/lbjlaq/Antigravity-Manager/releases | jq -r '.[].tag_name'
+
+# 构建特定版本 (默认 arm64)
+./build-version.sh 1.2.3
+
+# 或指定架构
+./build-version.sh 1.2.3 amd64
+
+# 使用特定版本启动
+docker compose -f docker-compose.build.yml up -d
+```
+
 ---
 
 ## 许可证
