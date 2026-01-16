@@ -42,6 +42,13 @@ cd antigravity-manager-docker
 docker compose -f docker-compose.build.yml up -d
 ```
 
+# 更新到指定版本
+# 把 v3.3.33 标记为 latest
+docker tag antigravity-tools:v3.3.33 antigravity-tools:latest
+
+# 强制重建容器
+docker compose -f docker-compose.build.yml up -d --force-recreate
+
 > **注意**: 构建脚本使用 `--no-cache` 参数，确保每次构建都会获取最新版本的 Antigravity Tools。
 
 ---
